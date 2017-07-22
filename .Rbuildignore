@@ -1,5 +1,0 @@
-^.*\.Rproj$
-^\.Rproj\.user$
-^\.travis\.yml$
-^Makefile$
-^extra_vignettes/
