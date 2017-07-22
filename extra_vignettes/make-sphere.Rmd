@@ -3,7 +3,7 @@ title: "Minecraft Spheres"
 output: html_notebook
 ---
 
-Create spheres of any size in Minecraft. This simple script builds a sphere one ring at a time from the bottom to the top. You can build hollow spheres or solid spheres.
+Create spheres of any size in Minecraft. This simple script builds a sphere one ring at a time from the bottom to the top. You can build hollow spheres or solid spheres. This is great for building "planets" and Death Stars that orbit your minecraft world.
 
 ![](figure/minecraft-spheres.png)
 
