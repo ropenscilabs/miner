@@ -7,6 +7,16 @@ Create spheres of any size in Minecraft. This simple script builds a sphere one 
 
 ![](figure/minecraft-spheres.png)
 
+## Connect to Minecraft server
+
+Connect to your minecraft server.
+
+```{r}
+library(miner)
+mc_connect()
+```
+
+
 ## Parameter setup
 
 Choose radius size and block ID (20 = glass; 1 = stone). Increase theta if you are using a larger radius.
@@ -22,7 +32,7 @@ blockid <- 20 # use glass
 
 ## Create sphere coordinates
 
-Create spherical coordiantes using formulae from [Wolfram](http://mathworld.wolfram.com/Sphere.html). This will build one ring for every value in z (height).
+Create spherical coordiantes using formulae from [Wolfram](http://mathworld.wolfram.com/Sphere.html). This will build one ring for every value in z (height). Round the coordinates so that each point maps to a specific block in minecraft. Remove duplicate coordinates.
 
 ```{r}
 rings <- array(0, c(ntheta, 2, nz))
@@ -30,28 +40,12 @@ for(k in 1:nz){
   rings[, 1, k] <- sqrt(radius ^ 2 - z[k] ^ 2) * cos(theta)
   rings[, 2, k] <- sqrt(radius ^ 2 - z[k] ^ 2) * sin(theta)
 }
-```
-
-## Chunk circles into grid
-
-Round the coordinates so that each point maps to a specific block in minecraft. Remove duplicate coordinates.
-
-```{r}
 sphere <- apply(round(rings), 3, function(x) x[!duplicated(x), , drop = FALSE])
-```
-
-## Connect to Minecraft server
-
-Connect to your minecraft server.
-
-```{r}
-library(miner)
-mc_connect()
 ```
 
 ## Build hollow spheres
 
-Build the sphere blocks.
+Set blocks for the hollow sphere. Note that this will build at position 0, 0, 0.
 
 ```{r}
 for(j in 1:nz){
@@ -62,7 +56,7 @@ for(j in 1:nz){
 }
 ```
 
-Note that this will build at position 0, 0, 0. Add an offset if you want to build your sphere somehere else. This code will build a sphere at the players current position.
+You may want to add an offset if you want to build your sphere somehere else. This code will build a sphere at the players current position.
 
 ```{r}
 id <- getPlayerIds()
@@ -77,7 +71,7 @@ for(j in 1:nz){
 
 ## Build solid spheres
 
-This function will only fill in one row inside a single ring of a sphere.
+Use these functions to fill in rows and rings inside a sphere.
 
 ```{r}
 fillrow <- function(x){
@@ -85,11 +79,7 @@ fillrow <- function(x){
   idx <- seq_along(x)
   idx > min(rng) & idx < max(rng)
 }
-```
 
-Use this function to fill in all the rows inside a single ring of a sphere.
-
-```{r}
 fillring <- function(ring){
   xy <- xtabs(~ring[,1] + ring[,2]) # Create a crosstab
   xyfill <- xy | t(apply(xy, 1, fillrow)) # Apply fillrow function to all rows
@@ -104,7 +94,7 @@ Fill in all the rows for all the rings of a sphere.
 solid <- lapply(sphere, fillring)
 ```
 
-Place solid spheres.
+Set blocks for solid spheres.
 
 ```{r}
 blockid <- 1 # use stone
