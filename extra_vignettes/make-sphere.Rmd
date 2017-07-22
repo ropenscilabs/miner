@@ -88,7 +88,7 @@ fillring <- function(ring){
 }
 ```
 
-Fill in all the rows for all the rings of a sphere.
+Apply the fill functions to the sphere in order to create a solid sphere.
 
 ```{r}
 solid <- lapply(sphere, fillring)
