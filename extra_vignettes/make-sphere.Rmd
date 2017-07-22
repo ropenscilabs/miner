@@ -3,7 +3,9 @@ title: "Minecraft Spheres"
 output: html_notebook
 ---
 
-Create spheres of any size in Minecraft. This simple script builds a sphere one ring at a time from the bottom to the top.
+Create spheres of any size in Minecraft. This simple script builds a sphere one ring at a time from the bottom to the top. You can build hollow spheres or solid spheres.
+
+![](figure/minecraft-spheres.png)
 
 ## Parameter setup
 
@@ -47,9 +49,9 @@ library(miner)
 mc_connect()
 ```
 
-## Place spheres
+## Build hollow spheres
 
-Build the sphere blocks. Note that this will build at position 0, 0, 0. Add an offset if you want to build your sphere somehere else.
+Build the sphere blocks.
 
 ```{r}
 for(j in 1:nz){
@@ -60,4 +62,58 @@ for(j in 1:nz){
 }
 ```
 
-![](figure/minecraft-spheres.png)
+Note that this will build at position 0, 0, 0. Add an offset if you want to build your sphere somehere else. This code will build a sphere at the players current position.
+
+```{r}
+id <- getPlayerIds()
+p <- getPlayerPos(id)
+for(j in 1:nz){
+  ring <- sphere[[j]]
+  for(i in 1:nrow(ring)){
+    setBlock(p[1] + ring[i, 1], p[2] + j, p[3] + ring[i, 2], blockid)
+  }
+}
+```
+
+## Build solid spheres
+
+This function will only fill in one row inside a single ring of a sphere.
+
+```{r}
+fillrow <- function(x){
+  rng <- range(which(x == 1))
+  idx <- seq_along(x)
+  idx > min(rng) & idx < max(rng)
+}
+```
+
+Use this function to fill in all the rows inside a single ring of a sphere.
+
+```{r}
+fillring <- function(ring){
+  xy <- xtabs(~ring[,1] + ring[,2]) # Create a crosstab
+  xyfill <- xy | t(apply(xy, 1, fillrow)) # Apply fillrow function to all rows
+  dd <- as.data.frame.table(xyfill, stringsAsFactors = FALSE) # Create dataframe
+  cbind(as.numeric(dd[, 1]), as.numeric(dd[, 2]))[dd[,3], , drop = FALSE]
+}
+```
+
+Fill in all the rows for all the rings of a sphere.
+
+```{r}
+solid <- lapply(sphere, fillring)
+```
+
+Place solid spheres.
+
+```{r}
+blockid <- 1 # use stone
+p <- p + c(30, 0, 30) # build sphere in new location
+for(j in 1:nz){
+  ring <- solid[[j]]
+  for(i in 1:nrow(ring)){
+    setBlock(p[1] + ring[i, 1], p[2] + j, p[3] + ring[i, 2], blockid)
+  }
+}
+```
+
