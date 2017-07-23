@@ -18,31 +18,29 @@ mc_connect("34.210.234.34")
 
 ## Inputs
 
-Choose radius size and block ID (20 = glass; 1 = stone). Also select whether to create a hollow or filled sphere.
+Choose radius size and block ID. Also select whether to create a hollow or filled sphere.
 
 ```{r}
 # Inputs
-radius <- 15      # Size of the sphere
-lo <- -radius     # Truncate sphere bottom (set to 0 for a dome)
-hi <- radius      # Truncate sphere top (set to 0 for floating hemisphere)
-fill <- FALSE     # Set to true if you want a solid sphere
-blockid <- 20     # Block id (1 = stone; 2 = grass; 20 = glass)
-styleid <- 0      # Block style id
-pos <- getPlayerPos(getPlayerIds()[1], tile = TRUE) # origin for placing sphere
-offset <- c(-radius, 0, -radius) # offset from origin for placing sphere
+radius <- 15           # Size of the sphere
+blockid <- 20          # Block id (1 = stone; 2 = grass; 20 = glass)
+styleid <- 0           # Block style id
+fill <- FALSE          # Set to true if you want a solid sphere
+offset <- c(0, 0, 0)   # offset from the sphere origin
+pos <- getPlayerPos(tail(getPlayerIds(), 1), tile = TRUE) # sphere origin
 ```
 
 ## Create a stack of rings
 
-Create rings using formulae from [Wolfram](http://mathworld.wolfram.com/Sphere.html). This will build one ring for every value in z (height) starting at zero and going to the length of the radius. This will create a single hemisphere. Later we will duplicate the hemisphere to create a full sphere.
+Create rings using formulae from [Wolfram](http://mathworld.wolfram.com/Sphere.html). This step creates a single hemisphere. Later we will duplicate the hemisphere to create a full sphere.
 
 ```{r}
-rings <- array(0, c(x = 2 * radius + 1, y = 2 * radius + 1, z = radius + 1))
-for(zz in 0:radius){
+rings <- array(0, c(x = 2 * radius + 1, y = radius + 1, z = 2 * radius + 1))
+for(y in 0:radius){
   for(theta in seq(0, 2 * pi, len = 10 * radius)){
-    xind <- sqrt(radius ^ 2 - zz ^ 2) * cos(theta) + radius
-    yind <- sqrt(radius ^ 2 - zz ^ 2) * sin(theta) + radius
-    rings[round(xind) + 1, round(yind) + 1, zz + 1] <- 1
+    xind <- sqrt(radius ^ 2 - y ^ 2) * cos(theta) + radius
+    zind <- sqrt(radius ^ 2 - y ^ 2) * sin(theta) + radius
+    rings[round(xind) + 1, y + 1, round(zind) + 1] <- 1
   }
 }
 ```
@@ -60,7 +58,7 @@ fillrow <- function(x){
   fill <- idx >= min(rng) & idx <= max(rng)
   fill * 1
 }
-dome <- aperm(apply(rings, c(1,3), fillrow), c(2, 1, 3))
+dome <- aperm(apply(rings, 1:2, fillrow), c(2, 3, 1))
 ```
 
 ## Hollow out the dome
@@ -69,35 +67,43 @@ dome <- aperm(apply(rings, c(1,3), fillrow), c(2, 1, 3))
 
 ```{r}
 if(!fill){
-  for(zz in 1:radius){
-    fill <- (dome[, , zz] - dome[, , zz + 1]) == 1
-    ring <- rings[, , zz] == 1
-    dome[, , zz] <- (fill | ring) * 1
+  for(y in 1:radius){
+    disk <- (dome[, y, ] - dome[, y + 1, ]) == 1
+    ring <- rings[, y, ] == 1
+    dome[, y, ] <- (disk | ring) * 1
   }
 }
 ```
 
-## Create a sphere and truncate the top and bottom
+## Create a sphere
 
-Create a sphere by duplicating the dome. *Optional*. Truncate the top and bottom of the dome. You can create a floating island (truncate top) or a dome (truncate bottom). 
+Create a sphere by duplicating the dome.
 
 ```{r}
-zind <- abs(seq(lo, hi)) + 1
-sphere <- dome[, , zind]
+yind <- abs(seq(-radius, radius)) + 1
+sphere <- dome[, yind, ,drop = FALSE]
 ```
 
 ## Place blocks to create the sphere
 
-Loop through all the coordinates of the sphere, placing blocks only on those locations that correspond to the sphere. Notice the origin is at `pos + offset`. Also notice block id and style are set here. Use `blockid = 0` to erase.
+Loop through all the coordinates of the sphere, placing blocks only on those locations that correspond to the sphere. Note: The origin refers to the center of the sphere. You can use `xlim`, `ylim`, and `zlim` to plot a "truncated" sphere. Use `ylim = c(0, radius)` to build a dome.
 
 ```{r}
-p <- pos + offset 
-xyz <- dim(sphere)
-for(zz in 1:xyz[3]){
-  for(yy in 1:xyz[2]){
-    for(xx in 1:xyz[1]){
-      if(sphere[xx, yy, zz] == 1){
-        setBlock(p[1] + xx, p[2] + zz, p[3] + yy, blockid, styleid)
+# Define plot dimensions  
+xlim <- c(-radius, radius)
+ylim <- c(-radius, radius)
+zlim <- c(-radius, radius)
+xx <- seq(xlim[1], xlim[2]) + radius + 1
+yy <- seq(ylim[1], ylim[2]) + radius + 1
+zz <- seq(zlim[1], zlim[2]) + radius + 1
+
+# Place blocks to create the sphere
+p <- pos + offset - c(radius + 1, radius + 1, radius + 1)
+for(x in xx){
+  for(y in yy){
+    for(z in zz){
+      if(sphere[x, y, z] == 1){
+        setBlock(p[1] + x, p[2] + y, p[3] + z, blockid, styleid)
       }
     }
   }
@@ -106,29 +112,28 @@ for(zz in 1:xyz[3]){
 
 ***
 
-## Function
+## Sphere function
 
-Use the `sphere` function to create a sphere with the following arguments.
+Use the `sphere` function to create a sphere.
 
 ```{r}
 sphere <- function(
-  radius = 15,      # Size of the sphere
-  lo = -radius,     # Truncate sphere bottom (set to 0 for a dome)
-  hi = radius,      # Truncate sphere top (set to 0 for floating hemisphere)
-  fill = FALSE,     # Set to true if you want a solid sphere
-  blockid = 20,     # Block id (1 = stone; 2 = grass; 20 = glass)
-  styleid = 0,      # Block style id
-  pos = getPlayerPos(getPlayerIds()[1], tile = TRUE), # origin for placing sphere
-  offset = c(-radius, 0, -radius) # offset from origin for placing sphere
+  radius = 15,           # Size of the sphere
+  blockid = 20,          # Block id (1 = stone; 2 = grass; 20 = glass)
+  styleid = 0,           # Block style id
+  fill = FALSE,          # Set to true if you want a solid sphere
+  offset = c(0, 0, 0),   # offset from the sphere origin
+  pos = getPlayerPos(tail(getPlayerIds(), 1), tile = TRUE), # sphere origin
+  xlim, ylim, zlim       # plotting limits for sphere truncation
 ){
 
   # Create a stack of rings
-  rings <- array(0, c(x = 2 * radius + 1, y = 2 * radius + 1, z = radius + 1))
-  for(zz in 0:radius){
+  rings <- array(0, c(x = 2 * radius + 1, y = radius + 1, z = 2 * radius + 1))
+  for(y in 0:radius){
     for(theta in seq(0, 2 * pi, len = 10 * radius)){
-      xind <- sqrt(radius ^ 2 - zz ^ 2) * cos(theta) + radius
-      yind <- sqrt(radius ^ 2 - zz ^ 2) * sin(theta) + radius
-      rings[round(xind) + 1, round(yind) + 1, zz + 1] <- 1
+      xind <- sqrt(radius ^ 2 - y ^ 2) * cos(theta) + radius
+      zind <- sqrt(radius ^ 2 - y ^ 2) * sin(theta) + radius
+      rings[round(xind) + 1, y + 1, round(zind) + 1] <- 1
     }
   }
   
@@ -141,33 +146,42 @@ sphere <- function(
     fill <- idx >= min(rng) & idx <= max(rng)
     fill * 1
   }
-  dome <- aperm(apply(rings, c(1,3), fillrow), c(2, 1, 3))
+  dome <- aperm(apply(rings, 1:2, fillrow), c(2, 3, 1))
   
   # Hollow out the dome
   if(!fill){
-    for(zz in 1:radius){
-      fill <- (dome[, , zz] - dome[, , zz + 1]) == 1
-      ring <- rings[, , zz] == 1
-      dome[, , zz] <- (fill | ring) * 1
+    for(y in 1:radius){
+      disk <- (dome[, y, ] - dome[, y + 1, ]) == 1
+      ring <- rings[, y, ] == 1
+      dome[, y, ] <- (disk | ring) * 1
     }
   }
   
-  # Create a sphere and truncate the top and bottom
-  zind <- abs(seq(lo, hi)) + 1
-  sphere <- dome[, , zind]
+  # Create a sphere
+  yind <- abs(seq(-radius, radius)) + 1
+  sphere <- dome[, yind, ,drop = FALSE]
+
+  # Define plot dimensions  
+  if(missing(xlim)) xlim <- c(-radius, radius)
+  if(missing(ylim)) ylim <- c(-radius, radius)
+  if(missing(zlim)) zlim <- c(-radius, radius)
+  xx <- seq(xlim[1], xlim[2]) + radius + 1
+  yy <- seq(ylim[1], ylim[2]) + radius + 1
+  zz <- seq(zlim[1], zlim[2]) + radius + 1
   
   # Place blocks to create the sphere
-  p <- pos + offset 
-  xyz <- dim(sphere)
-  for(zz in 1:xyz[3]){
-    for(yy in 1:xyz[2]){
-      for(xx in 1:xyz[1]){
-        if(sphere[xx, yy, zz] == 1){
-          setBlock(p[1] + xx, p[2] + zz, p[3] + yy, blockid, styleid)
+  p <- pos + offset - c(radius + 1, radius + 1, radius + 1)
+  for(x in xx){
+    for(y in yy){
+      for(z in zz){
+        if(sphere[x, y, z] == 1){
+          setBlock(p[1] + x, p[2] + y, p[3] + z, blockid, styleid)
         }
       }
     }
   }
+
+  # Output current position and sphere origin
   cat("pos:", pos, "\n")
   cat("offset:", offset, "\n")
   cat("sphere origin:", p, "\n")
@@ -182,15 +196,31 @@ Consider these examples to create a sphere, dome, floating island, and a Death S
 # Glass sphere
 sphere()
 
-# Large glass dome
-sphere(radius = 25, lo = 0, offset = c(-25, -1, -25))
+# Erase sphere
+sphere(blockid = 1, fill = TRUE, radius = 5, offset = c(5,5,5))
+
+# Glass dome
+sphere(15, blockid = 20, ylim = c(0, 15))
 
 # Small floating island
-sphere(radius = 10, hi = 0, offset = c(-10, 20, -10), blockid = 2, fill = TRUE)
+sphere(10, blockid = 2, fill = TRUE, offset = c(0, 40, 0), ylim = c(-10, 0))
 
 # Death star
-sphere(radius = 30, fill = TRUE, blockid = 1, pos = c(305, 0, -113))
-sphere(radius = 10, fill = TRUE, blockid = 0, pos = c(305, 20, -150))
+sphere(20, blockid = 1, fill = TRUE, offset = c(0, 25, 35))
+sphere(10, blockid = 0, fill = TRUE, offset = c(0, 25, 10))
+
+# Mound
+for(i in 0:10) sphere(8, blockid = 2, offset = c(0, i, 0), ylim = c(0, 0))
+sphere(8, blockid = 2, offset = c(0, 11, 0), ylim = c(0, 8))
+
+# Gobstopper
+for(i in 1:5 * 5) sphere(i, blockid = 95, styleid = i / 5 * 2, offset = c(0, 40, 0))
+
+# Saturn
+sphere( 7, 95, 4, TRUE,  c(0, 40, 0))
+sphere(15, 95, 1, FALSE, c(0, 40, 0), ylim = c(0, 0))
+sphere(17, 95, 8, FALSE, c(0, 40, 0), ylim = c(0, 0))
+sphere(21, 95, 9, FALSE, c(0, 40, 0), ylim = c(0, 0))
 ```
 
 
