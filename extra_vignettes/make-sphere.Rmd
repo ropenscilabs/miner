@@ -3,7 +3,7 @@ title: "Minecraft Spheres"
 output: html_notebook
 ---
 
-Create spheres of any size in Minecraft. This simple script builds a sphere one ring at a time from the bottom to the top. You can build hollow spheres or solid spheres. This is great for building "planets" and Death Stars that orbit your minecraft world.
+Create spheres and domes of any size in Minecraft -- hollow or solid. This is great for building "planets", Death Stars, and floating hemispheres that orbit your minecraft world. You can also use it to build domes over villages or other secluded areas of your world.
 
 ![](figure/minecraft-spheres.png)
 
@@ -13,97 +13,184 @@ Connect to your minecraft server.
 
 ```{r}
 library(miner)
-mc_connect()
+mc_connect("34.210.234.34")
 ```
 
+## Inputs
 
-## Parameter setup
-
-Choose radius size and block ID (20 = glass; 1 = stone). Increase theta if you are using a larger radius.
+Choose radius size and block ID (20 = glass; 1 = stone). Also select whether to create a hollow or filled sphere.
 
 ```{r}
-radius <- 15 # Size of the sphere
-z <- seq(-radius, radius)
-nz <- length(z) # Number of rings to create
-ntheta <- 100 # Number of xy coodinates to create for each ring
-theta <- seq(0, 2 * pi, len = ntheta)
-blockid <- 20 # use glass
+# Inputs
+radius <- 15      # Size of the sphere
+lo <- -radius     # Truncate sphere bottom (set to 0 for a dome)
+hi <- radius      # Truncate sphere top (set to 0 for floating hemisphere)
+fill <- FALSE     # Set to true if you want a solid sphere
+blockid <- 20     # Block id (1 = stone; 2 = grass; 20 = glass)
+styleid <- 0      # Block style id
+pos <- getPlayerPos(getPlayerIds()[1], tile = TRUE) # origin for placing sphere
+offset <- c(-radius, 0, -radius) # offset from origin for placing sphere
 ```
 
-## Create sphere coordinates
+## Create a stack of rings
 
-Create spherical coordiantes using formulae from [Wolfram](http://mathworld.wolfram.com/Sphere.html). This will build one ring for every value in z (height). Round the coordinates so that each point maps to a specific block in minecraft. Remove duplicate coordinates.
-
-```{r}
-rings <- array(0, c(ntheta, 2, nz))
-for(k in 1:nz){
-  rings[, 1, k] <- sqrt(radius ^ 2 - z[k] ^ 2) * cos(theta)
-  rings[, 2, k] <- sqrt(radius ^ 2 - z[k] ^ 2) * sin(theta)
-}
-sphere <- apply(round(rings), 3, function(x) x[!duplicated(x), , drop = FALSE])
-```
-
-## Build hollow spheres
-
-Set blocks for the hollow sphere. Note that this will build at position 0, 0, 0.
+Create rings using formulae from [Wolfram](http://mathworld.wolfram.com/Sphere.html). This will build one ring for every value in z (height) starting at zero and going to the length of the radius. This will create a single hemisphere. Later we will duplicate the hemisphere to create a full sphere.
 
 ```{r}
-for(j in 1:nz){
-    ring <- sphere[[j]]
-    for(i in 1:nrow(ring)){
-    setBlock(ring[i, 1], j, ring[i, 2], blockid)
+rings <- array(0, c(x = 2 * radius + 1, y = 2 * radius + 1, z = radius + 1))
+for(zz in 0:radius){
+  for(theta in seq(0, 2 * pi, len = 10 * radius)){
+    xind <- sqrt(radius ^ 2 - zz ^ 2) * cos(theta) + radius
+    yind <- sqrt(radius ^ 2 - zz ^ 2) * sin(theta) + radius
+    rings[round(xind) + 1, round(yind) + 1, zz + 1] <- 1
   }
 }
 ```
 
-You may want to add an offset if you want to build your sphere somehere else. This code will build a sphere at the players current position.
+## Create a solid dome
 
-```{r}
-id <- getPlayerIds()
-p <- getPlayerPos(id)
-for(j in 1:nz){
-  ring <- sphere[[j]]
-  for(i in 1:nrow(ring)){
-    setBlock(p[1] + ring[i, 1], p[2] + j, p[3] + ring[i, 2], blockid)
-  }
-}
-```
-
-## Build solid spheres
-
-Use these functions to fill in rows and rings inside a sphere.
+Use the `fillrow` function to fill in the rings. This creates a solid dome.
 
 ```{r}
 fillrow <- function(x){
-  rng <- range(which(x == 1))
+  ind <- which(x == 1)
+  if(length(ind) == 0) ind <- 0 
+  rng <- range(ind)
   idx <- seq_along(x)
-  idx > min(rng) & idx < max(rng)
+  fill <- idx >= min(rng) & idx <= max(rng)
+  fill * 1
 }
-
-fillring <- function(ring){
-  xy <- xtabs(~ring[,1] + ring[,2]) # Create a crosstab
-  xyfill <- xy | t(apply(xy, 1, fillrow)) # Apply fillrow function to all rows
-  dd <- as.data.frame.table(xyfill, stringsAsFactors = FALSE) # Create dataframe
-  cbind(as.numeric(dd[, 1]), as.numeric(dd[, 2]))[dd[,3], , drop = FALSE]
-}
+dome <- aperm(apply(rings, c(1,3), fillrow), c(2, 1, 3))
 ```
 
-Apply the fill functions to the sphere in order to create a solid sphere.
+## Hollow out the dome
+
+*Optional*. Hollow out the dome. 
 
 ```{r}
-solid <- lapply(sphere, fillring)
-```
-
-Set blocks for solid spheres.
-
-```{r}
-blockid <- 1 # use stone
-p <- p + c(30, 0, 30) # build sphere in new location
-for(j in 1:nz){
-  ring <- solid[[j]]
-  for(i in 1:nrow(ring)){
-    setBlock(p[1] + ring[i, 1], p[2] + j, p[3] + ring[i, 2], blockid)
+if(!fill){
+  for(zz in 1:radius){
+    fill <- (dome[, , zz] - dome[, , zz + 1]) == 1
+    ring <- rings[, , zz] == 1
+    dome[, , zz] <- (fill | ring) * 1
   }
 }
 ```
+
+## Create a sphere and truncate the top and bottom
+
+Create a sphere by duplicating the dome. *Optional*. Truncate the top and bottom of the dome. You can create a floating island (truncate top) or a dome (truncate bottom). 
+
+```{r}
+zind <- abs(seq(lo, hi)) + 1
+sphere <- dome[, , zind]
+```
+
+## Place blocks to create the sphere
+
+Loop through all the coordinates of the sphere, placing blocks only on those locations that correspond to the sphere. Notice the origin is at `pos + offset`. Also notice block id and style are set here. Use `blockid = 0` to erase.
+
+```{r}
+p <- pos + offset 
+xyz <- dim(sphere)
+for(zz in 1:xyz[3]){
+  for(yy in 1:xyz[2]){
+    for(xx in 1:xyz[1]){
+      if(sphere[xx, yy, zz] == 1){
+        setBlock(p[1] + xx, p[2] + zz, p[3] + yy, blockid, styleid)
+      }
+    }
+  }
+}
+```
+
+***
+
+## Function
+
+Use the `sphere` function to create a sphere with the following arguments.
+
+```{r}
+sphere <- function(
+  radius = 15,      # Size of the sphere
+  lo = -radius,     # Truncate sphere bottom (set to 0 for a dome)
+  hi = radius,      # Truncate sphere top (set to 0 for floating hemisphere)
+  fill = FALSE,     # Set to true if you want a solid sphere
+  blockid = 20,     # Block id (1 = stone; 2 = grass; 20 = glass)
+  styleid = 0,      # Block style id
+  pos = getPlayerPos(getPlayerIds()[1], tile = TRUE), # origin for placing sphere
+  offset = c(-radius, 0, -radius) # offset from origin for placing sphere
+){
+
+  # Create a stack of rings
+  rings <- array(0, c(x = 2 * radius + 1, y = 2 * radius + 1, z = radius + 1))
+  for(zz in 0:radius){
+    for(theta in seq(0, 2 * pi, len = 10 * radius)){
+      xind <- sqrt(radius ^ 2 - zz ^ 2) * cos(theta) + radius
+      yind <- sqrt(radius ^ 2 - zz ^ 2) * sin(theta) + radius
+      rings[round(xind) + 1, round(yind) + 1, zz + 1] <- 1
+    }
+  }
+  
+  # Create a solid dome
+  fillrow <- function(x){
+    ind <- which(x == 1)
+    if(length(ind) == 0) ind <- 0 
+    rng <- range(ind)
+    idx <- seq_along(x)
+    fill <- idx >= min(rng) & idx <= max(rng)
+    fill * 1
+  }
+  dome <- aperm(apply(rings, c(1,3), fillrow), c(2, 1, 3))
+  
+  # Hollow out the dome
+  if(!fill){
+    for(zz in 1:radius){
+      fill <- (dome[, , zz] - dome[, , zz + 1]) == 1
+      ring <- rings[, , zz] == 1
+      dome[, , zz] <- (fill | ring) * 1
+    }
+  }
+  
+  # Create a sphere and truncate the top and bottom
+  zind <- abs(seq(lo, hi)) + 1
+  sphere <- dome[, , zind]
+  
+  # Place blocks to create the sphere
+  p <- pos + offset 
+  xyz <- dim(sphere)
+  for(zz in 1:xyz[3]){
+    for(yy in 1:xyz[2]){
+      for(xx in 1:xyz[1]){
+        if(sphere[xx, yy, zz] == 1){
+          setBlock(p[1] + xx, p[2] + zz, p[3] + yy, blockid, styleid)
+        }
+      }
+    }
+  }
+  cat("pos:", pos, "\n")
+  cat("offset:", offset, "\n")
+  cat("sphere origin:", p, "\n")
+}
+```
+
+## Examples
+
+Consider these examples to create a sphere, dome, floating island, and a Death Star.
+
+```{r}
+# Glass sphere
+sphere()
+
+# Large glass dome
+sphere(radius = 25, lo = 0, offset = c(-25, -1, -25))
+
+# Small floating island
+sphere(radius = 10, hi = 0, offset = c(-10, 20, -10), blockid = 2, fill = TRUE)
+
+# Death star
+sphere(radius = 30, fill = TRUE, blockid = 1, pos = c(305, 0, -113))
+sphere(radius = 10, fill = TRUE, blockid = 0, pos = c(305, 20, -150))
+```
+
 
