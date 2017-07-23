@@ -15,7 +15,7 @@ Connect to your minecraft server.
 
 ```{r}
 library(miner)
-mc_connect("34.210.234.34")
+mc_connect()
 ```
 
 ## 1. Inputs
