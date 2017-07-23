@@ -34,7 +34,7 @@ pos <- getPlayerPos(tail(getPlayerIds(), 1), tile = TRUE) # sphere origin
 
 ## 2. Create a stack of rings
 
-Create rings using formulae from [Wolfram](http://mathworld.wolfram.com/Sphere.html). This step creates a single hemisphere. Later we will duplicate the hemisphere to create a full sphere.
+This step creates a single hemisphere where the `y` dimension represents height in the minecraft world. In a later step we will duplicate the hemisphere to create a full sphere. See [Wolfram](http://mathworld.wolfram.com/Sphere.html) for the formulae used to create the rings.
 
 ```{r}
 rings <- array(0, c(x = 2 * radius + 1, y = radius + 1, z = 2 * radius + 1))
@@ -192,14 +192,14 @@ sphere <- function(
 
 ## Examples
 
-Consider these examples to create a sphere, dome, floating island, and a Death Star.
+Consider these examples to create a sphere, dome, floating island, a Death Star, and more.
 
 ```{r}
 # Glass sphere
 sphere()
 
 # Erase sphere
-sphere(blockid = 1, fill = TRUE, radius = 5, offset = c(5,5,5))
+sphere(blockid = 0)
 
 # Glass dome
 sphere(15, blockid = 20, ylim = c(0, 15))
@@ -216,13 +216,20 @@ for(i in 0:10) sphere(8, blockid = 2, offset = c(0, i, 0), ylim = c(0, 0))
 sphere(8, blockid = 2, offset = c(0, 11, 0), ylim = c(0, 8))
 
 # Gobstopper
-for(i in 1:5 * 5) sphere(i, blockid = 95, styleid = i / 5 * 2, offset = c(0, 40, 0))
+for(i in 1:5 * 5){
+  sphere(i, blockid = 95, styleid = i / 5 * 2, offset = c(0, 40, 0))
+}
 
 # Saturn
 sphere( 7, 95, 4, TRUE,  c(0, 40, 0))
 sphere(15, 95, 1, FALSE, c(0, 40, 0), ylim = c(0, 0))
 sphere(17, 95, 8, FALSE, c(0, 40, 0), ylim = c(0, 0))
 sphere(21, 95, 9, FALSE, c(0, 40, 0), ylim = c(0, 0))
+
+# Mouse ears
+sphere(16, 49, 0, TRUE, zlim = c(0, 0), offset = c(  0,  0, 5))
+sphere( 8, 49, 0, TRUE, zlim = c(0, 0), offset = c( 16, 17, 5))
+sphere( 8, 49, 0, TRUE, zlim = c(0, 0), offset = c(-16, 17, 5))
 ```
 
 
