@@ -88,6 +88,11 @@ sphereAddin <- function(inputValue1, inputValue2) {
               selectInput("fill", "Fill Type", c("Hollow", "Solid"), "Hollow")
             ),
             fillRow(
+              numericInput("offx", "Offset (X)", 0),
+              numericInput("offy", "Offset (Y)", 0),
+              numericInput("offz", "Offset (Z)", 0)
+            ),
+            fillRow(
               actionButton("build", "Build Sphere", width = "100%", style="background-color: #D3D3D3")
             )
           )
@@ -96,11 +101,6 @@ sphereAddin <- function(inputValue1, inputValue2) {
       miniTabPanel("Position", icon = icon("arrows-alt"), 
         miniContentPanel(
           fillCol(
-            fillRow(
-              numericInput("offx", "Offset (X)", 0),
-              numericInput("offy", "Offset (Y)", 0),
-              numericInput("offz", "Offset (Z)", 0)
-            ),
             fillRow(
               numericInput("posx", "Origin (X)", NULL),
               numericInput("posy", "Origin (Y)", NULL),
@@ -114,12 +114,14 @@ sphereAddin <- function(inputValue1, inputValue2) {
           fillCol(
             fillRow(
               numericInput("xlimhi", "X (hi)", NULL),
-              numericInput("ylimhi", "Y (hi)", NULL),
-              numericInput("zlimhi", "Z (hi)", NULL)
+              numericInput("xlimlo", "X (lo)", NULL)
             ),
             fillRow(
-              numericInput("xlimlo", "X (lo)", NULL),
-              numericInput("ylimlo", "Y (lo)", NULL),
+              numericInput("ylimhi", "Y (hi)", NULL),
+              numericInput("ylimlo", "Y (lo)", NULL)
+            ),
+            fillRow(
+              numericInput("zlimhi", "Z (hi)", NULL),
               numericInput("zlimlo", "Z (lo)", NULL)
             )
           )
