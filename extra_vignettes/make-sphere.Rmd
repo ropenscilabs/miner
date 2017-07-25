@@ -15,7 +15,7 @@ Connect to your minecraft server.
 
 ```{r}
 library(miner)
-mc_connect()
+mc_connect("34.210.234.34")
 ```
 
 ## 1. Inputs
@@ -105,7 +105,7 @@ for(x in xx){
   for(y in yy){
     for(z in zz){
       if(sphere[x, y, z] == 1){
-        setBlock(p[1] + x, p[2] + y, p[3] + z, blockid, styleid)
+        setBlock(x + p[1], y + p[2], z + p[3], blockid, styleid)
       }
     }
   }
@@ -177,7 +177,7 @@ sphere <- function(
     for(y in yy){
       for(z in zz){
         if(sphere[x, y, z] == 1){
-          setBlock(p[1] + x, p[2] + y, p[3] + z, blockid, styleid)
+          setBlock(x + p[1], y + p[2], z + p[3], blockid, styleid)
         }
       }
     }
@@ -231,5 +231,4 @@ sphere(16, 49, 0, TRUE, zlim = c(0, 0), offset = c(  0,  0, 5))
 sphere( 8, 49, 0, TRUE, zlim = c(0, 0), offset = c( 16, 17, 5))
 sphere( 8, 49, 0, TRUE, zlim = c(0, 0), offset = c(-16, 17, 5))
 ```
-
 
