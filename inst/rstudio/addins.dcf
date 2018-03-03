@@ -1,0 +1,4 @@
+Name: Sphere
+Description: Creates a sphere.
+Binding: sphereAddin
+Interactive: true

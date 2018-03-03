@@ -72,6 +72,14 @@ in May, 2017 by:
 * [David Smith](https://github.com/revodavid)
 * [Ali Zaidi](https://github.com/akzaidi)
 
+### Extending
+
+The [craft](https://github.com/ropenscilabs/craft) package includes additional functions that illustrate and extend the use of [miner](https://github.com/ropenscilabs/miner). Contributors who want to extend the functionality of [miner](https://github.com/ropenscilabs/miner) should submit their pull requests to the [craft](https://github.com/ropenscilabs/craft) package.
+
+### Documentation
+
+[R Programming with Minecraft](https://ROpenSciLabs.github.io/miner_book/) is a bookdown book about R and Minecraft, and particularly about using Minecraft with the [miner](https://github.com/ropenscilabs/miner) package. Contributors who want to add documentation should submit ther pull request the [miner-book](https://github.com/ropenscilabs/miner) package.
+
 ### License
 
 Licensed under the [MIT license](https://cran.r-project.org/web/licenses/MIT). ([More information here](https://en.wikipedia.org/wiki/MIT_License).)
