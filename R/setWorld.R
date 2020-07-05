@@ -26,9 +26,9 @@ setWorld <- function(world)
     
    } else {
      
-     mc_send(merge_data("setWorld()", world))
-     cat("set world to", world , "\n")
-     
+     out <- mc_sendreceive(merge_data("setWorld", world))
+     out
+
    }
      
      
