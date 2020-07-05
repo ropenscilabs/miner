@@ -15,9 +15,7 @@
 getWorlds <- function()
 {
     result <- mc_sendreceive("getWorlds()")
-    result <- gsub("\\[", "", result)
-    result <- gsub("\\]", "", result)
-    out <- strsplit(result, split = ', ')
+    out <- strsplit(result, split = ',')
     out[[1]]
     
 }
