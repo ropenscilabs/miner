@@ -7,7 +7,7 @@
 #' @param player_id  Integer giving the ID of a player. You can find IDs of all
 #'   current players using [getPlayerIds()].
 #'
-#' @return The world a player is in.
+#' @return The worldname a player is in.
 #'
 #'
 #' @examples
@@ -15,8 +15,8 @@
 #' mc_connect()
 #' getPlayerWorld()
 #'
-#' example_entity <- getPlayerIds()[1]
-#' getPlayerWorld(example_entity)
+#' player <- getPlayerIds()[1]
+#' getPlayerWorld(player)
 #' }
 #'
 #' @seealso [getWorlds()] and [setWorld()]
